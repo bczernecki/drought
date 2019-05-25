@@ -11,7 +11,8 @@ library(ncdf4)
 
 
 patt<- "2019-05-20"
-pathway<-"F:\\wrf\\20190519\\wrfprd"
+pathway <- paste0("/home/bartosz/", gsub(pattern = "-", replacement = "", x = as.Date(patt)-1),"/wrfprd")
+#pathway<-"F:\\wrf\\20190519\\wrfprd"
 
 
 daily_function<- function(input="inp"){
@@ -33,8 +34,7 @@ daily_function<- function(input="inp"){
 
 
 day<- dir(path=pathway , pattern = patt,full.names = T)
-day <- as.list(day[-grep(pattern = "_.tif", x = day)]) 
-res<-lapply(day, function(x) daily_function(input=x))
+day <- as.list(day) 
 
 
 ##########################################################################
@@ -82,13 +82,12 @@ proj4<- projection(meantemp)
 wojewodztwa <- readOGR("data/POL_adm1.shp")
 pol <- readOGR("data/POL_adm0.shp")
 rzeki <- readOGR("data/rzekiPL.shp") 
-jeziora <- readOGR("data/ne_10m_lakes.shp")
+jeziora <- readOGR("data/jeziora.shp")
 
 
 wojewodztwa <- spTransform(wojewodztwa,proj4)
 pol <- spTransform(pol, proj4)
-#jeziora <- (crop(pol, jeziora))
-#jeziora <- spTransform(jeziora, proj4)
+jeziora <- spTransform(jeziora, proj4)
 rzeki <- spTransform(rzeki, proj4)
 
 
@@ -109,68 +108,87 @@ temperatura_map<- function(input="inp", output="outp"){
   tempcolores2 <- tempcolores[ind[-length(ind)]]
   
   tm_shape(obj1) +
-    tm_raster(title= paste0("Daily mean temperature [°C] \n", patt)  ,palette = tempcolores2, breaks=breaks2, 
+    tm_raster(title= paste0("Średnia dobowa temperatura powietrza [°C] \n", patt , " (00-23 UTC)"),
+              interval.closure = "left",legend.hist = T,
+              palette = tempcolores2, breaks=breaks2, 
               legend.is.portrait = FALSE,
-              interpolate = T)  +
+              interpolate = FALSE)  +
     
     #Border  
     tm_shape(pol) +
-    tm_polygons(alpha = 0.001, lwd=3.5) +
+    tm_polygons(alpha = 0.001, lwd=1.5) +
     
     #Border of counties 
     tm_shape(wojewodztwa)+
-    tm_polygons(alpha = 0.01, lwd=0.5)+
+    tm_polygons(alpha = 0.01, lwd=0.7)+
     
     #Rivers    
     tm_shape(rzeki)+
-    tm_lines(col="#2669d6", lwd=1.5) +
+    tm_lines(col="#2669d6", lwd=1.1) +
     
     #Lakes
-    #tm_shape(jeziora)+
-    #tm_polygons(col="#2669d6") +
+    tm_shape(jeziora)+
+    tm_polygons(col="#2669d6") +
     
-    #Mean values of counties
-    tm_shape(centroidy)+
-    tm_text("column") +   
     
     #Title of the figure
-    tm_layout(#title = "2019-05-22",title.size = .75,
+    tm_layout(
       aes.palette = "div",
-      sepia.intensity = 0.2,legend.just = "right",title.color = "blue",
-      compass.type = "arrow",title.bg.color = "white", title.bg.alpha = 0.5,title.position = c(0.02,0.06),
+      sepia.intensity = 0.2,
+      legend.just = "right",
+      title.color = "blue",
+      compass.type = "arrow",
+      title.bg.color = "white", 
+      title.bg.alpha = 0.5,
+      title.size = 45,
+      #title.position = c(0.02,0.06),
       legend.outside = T,
       legend.outside.position =  "bottom",
-      legend.width = 1.0,
-      legend.title.size = 1.5,
-      legend.text.size = 0.7,
+      legend.width = 3,
+      legend.hist.width = 0.9,
+      legend.hist.height = 0.6,
+      legend.title.size = 0.90,
+      legend.text.size = 0.5,
       #legend.position = c("right","bottom"),
       legend.bg.color = "#FFFFFF60",
-      legend.height = 1.5,
-      legend.frame.lwd = 1,
+      legend.height = 0.9,
+      legend.frame.lwd = 0.2,
       legend.frame = F,
       legend.bg.alpha = 1,
       space.color="grey90",
-      legend.format = list(text.separator = " "))+
-    #Compass
-    tm_compass(position = c("left","top"), color.light = "grey90") +
-    
-    tm_credits("(c) WindHydro", position = c(.82, .93), size = 0.55) +
+      legend.format = list(text.separator = " ", format = formatC("d")))+
     
     #Lon/Lat    
-    tm_grid(projection = "longlat", x = 10:30, y=40:60, labels.col = "black", 
-            labels.size = 0.8, labels.inside.frame = T)
+    tm_grid(projection = "longlat", x = 10:30, y=40:60, labels.col = "black", col = "gray",lwd = 0.5,
+            labels.size = 0.4, labels.inside.frame = T) + 
+    #Mean values of counties
+    tm_shape(centroidy)+
+    tm_text("column", size = 0.7) +   
+    
+    #Compass
+    tm_compass(size = 1, fontsize = 0.7,
+               position = c(0.04,0.9), color.light = "grey90") +
+    
+    tm_scale_bar(width = 0.12,size = 0.35,breaks = c(0,50,100,150), position = c("left","bottom")) +
+    
+    tm_credits("(c) Wind-Hydro 2019", position = c("left", "bottom"), 
+               size = 0.35, bg.color = "white")
+    
  }
 
-png(filename= paste0("Daily mean of temperature ",patt,".png"))
-temperatura_map(input=meantemp, output="Daily mean of temperature.png")
-dev.off()
+#png(filename= paste0("Daily mean of temperature ",patt,".png"), width = 1000, height = 800)
+p <- temperatura_map(input=meantemp, output="Daily mean of temperature.png")
+
+# ciecie w inner margins: dol, lewa, gora, prawa
+tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
+              filename = "World_map2.png", width=1000, height=1300)
+#dev.off()
 
 
 figures_prec<- function(input="in", output= "outp"){
  # print(input)
   
   obj2<- mask(input, pol)
-  
   
   centroidy = gCentroid(wojewodztwa,byid=TRUE)
   centroidy$var <- round(extract(obj2, centroidy),1)
@@ -179,7 +197,7 @@ figures_prec<- function(input="in", output= "outp"){
   range_min <- floor(min(minValue(obj2)))
   range_max <- ceiling(max(maxValue(obj2)))
   
-  ind <- which(breaks> range_min & breaks < range_max)
+  ind <- which(breaks> range_min & breaks <= range_max)
   breaks2 <- breaks[ind]
   tempcolores2 <- opadcolores[ind[-length(ind)]]
 
@@ -212,7 +230,8 @@ figures_prec<- function(input="in", output= "outp"){
     tm_layout(#title = "2019-06-22",title.size = .75,
       aes.palette = "div",
       sepia.intensity = 0.2,legend.just = "right",title.color = "blue",
-      compass.type = "arrow",title.bg.color = "white", title.bg.alpha = 0.5,title.position = c(0.02,0.06),
+      compass.type = "arrow",title.bg.color = "white", title.bg.alpha = 0.5,
+      title.position = c(0.02,0.06),
       legend.outside = T,
       legend.outside.position =  "bottom",
       legend.width = 1.0,

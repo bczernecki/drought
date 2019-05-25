@@ -39,6 +39,14 @@ sumfunction<- function(input="inp"){
   r1<- calc(r1, function(x) sum(x, na.rm=T))
 }
 
+
+# dodanie progu termicznego 5*C:
+sumfunction_temp<- function(input="inp"){
+  r1<-stack(input)
+  r1[r1 < 5] <- 0
+  r1<- calc(r1, function(x) sum(x, na.rm=T))
+}
+
 meanfunction<- function(input="inp"){
   r1<-stack(input)
   r1<- calc(r1, function(x) mean(x, na.rm=T))
@@ -57,15 +65,26 @@ temp <- meanfunction( input  = stack(paste0("data/",getdecade(no = x)$tempfiles)
 opad <- sumfunction( input  = stack(paste0("data/",getdecade(no = x)$opadfiles)))
 opad <- mask(opad, pol)
 temp <- mask(temp, pol)
-temp[temp[]<5] <- 5
+temp[temp[]<0] <- 0
 htc <- opad/round(temp,2)
 return(htc)
 }
 
+#### HTC version 2: #####################
+htc_decade2 <- function(x = 5){
+  temp <- sumfunction( input  = stack(paste0("data/",getdecade(no = x)$tempfiles)))
+  opad <- sumfunction( input  = stack(paste0("data/",getdecade(no = x)$opadfiles)))*10
+  opad <- mask(opad, pol)
+  temp <- mask(temp, pol)
+  temp[temp[]<0] <- 0
+  htc <- opad/round(temp,2)
+  return(htc)
+}
+
+
 #htc_decade(6)
 
-htc_maps <- pbmclapply(10:36, htc_decade, mc.cores = 2)
-htc_maps <- pbmclapply(10:36, htc_decade, mc.cores = 2)
+htc_maps <- pbmclapply(10:36, htc_decade, mc.cores = 6)
 htc_maps <- stack(htc_maps)
 opadek <- pbmclapply(10:36, function(x) sumfunction(stack(paste0("data/",getdecade(no = x)$opadfiles))), mc.cores = 2)
 opadek <- stack(opadek)

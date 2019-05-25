@@ -163,9 +163,12 @@ temperatura_map<- function(input="inp", output="outp"){
     
  }
 
+www_path <- gsub(x = pathway, pattern = "wrfprd","www")
+dir.create(www_path)
+
 p <- temperatura_map(input=meantemp)
 # ciecie w inner margins: dol, lewa, gora, prawa
 tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-              filename = paste0("t2m_",patt,".png"), width=1000, height=1300)
+          filename = paste0(www_path, "/t2m_",patt,".png"), width=1000, height=1300)
 
-writeRaster(meantemp-273.15, filename = paste0("t2m_",patt,".tif"))
+writeRaster(meantemp-273.15, filename = paste0(www_path,"/t2m_",patt,".tif"))

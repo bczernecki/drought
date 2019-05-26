@@ -17,9 +17,10 @@ dzien <- as.numeric(as.character(args[2])) # tutaj chodzi o dzien wyprzedzenia w
 patt <- as.character(start_wrf+dzien)
 #print()
 #patt<- "2019-05-20"
-pathway <- paste0("/home/bartosz/", format(start_wrf, "%Y%m%d") ,"/wrfprd")
+pathway <- paste0("/media/wh/dysk12/wrfout/", format(start_wrf, "%Y%m%d") ,"/wrfprd")
 day <- dir(path=pathway , pattern = patt,full.names = T)
 day <- day[grep(pattern = "00$", x = day)] # bez geotiffow
+day <- day[grep(pattern = "d03", x = day)] # i tylko domena 03
 day <- as.list(day) 
 
 # warstwy GIS:
@@ -27,6 +28,7 @@ wojewodztwa <- readOGR("data/POL_adm1.shp")
 pol <- readOGR("data/POL_adm0.shp")
 rzeki <- readOGR("data/rzekiPL.shp") 
 jeziora <- readOGR("data/jeziora.shp")
+proj4 <- "+proj=lcc +lat_1=49.826000213623 +lat_2=49.826000213623 +lat_0=51.8421516418457 +lon_0=16.2469997406006 +x_0=0 +y_0=0 +a=6370000 +b=6370000 +units=m +no_defs"
 wojewodztwa <- spTransform(wojewodztwa,proj4)
 pol <- spTransform(pol, proj4)
 jeziora <- spTransform(jeziora, proj4)
@@ -34,14 +36,14 @@ rzeki <- spTransform(rzeki, proj4)
 centroidy <-  gCentroid(wojewodztwa,byid=TRUE)
 
 
- myfunction_for_converting <- function(input = 'netcdf',  variable = "var"){
-    geofile <- input
-    proj4<- GetProj(geofile)
-    output <- paste0(input, "_", variable, "_.tif")
-    ExportGeogrid(inFile = input, inVar = variable, outFile = output)
- }
- 
-mclapply(day, function(x) myfunction_for_converting(input = x, variable="T2"), mc.cores = 6)
+myfunction_for_converting <- function(input = 'netcdf',  variable = "var"){
+  geofile <- input
+  proj4<- GetProj(geofile)
+  output <- paste0(input, "_", variable, "_.tif")
+  ExportGeogrid(inFile = input, inVar = variable, outFile = output)
+}
+
+mclapply(day, function(x) myfunction_for_converting(input = x, variable="T2"), mc.cores = 24)
 # powinnismy miec teraz stworzone geotify
 
 
@@ -50,7 +52,7 @@ mclapply(day, function(x) myfunction_for_converting(input = x, variable="T2"), m
 tempfil<-dir(path=pathway, pattern = "T2", full.names = T)
 tempfil<- stack(tempfil[grepl(pattern=patt, tempfil)])
 meantemp<- calc(tempfil,mean)
-proj4<- projection(meantemp)
+
 
 #beginCluster(4)
 #meantemp <- clusterR(tempfil, calc, args=list(mean, na.rm=T))
@@ -78,11 +80,11 @@ tempcolores<- c("#f6c39f","#e3ac89","#cb9881","#b58575","#9c716e","#865c62","#70
 
 
 temperatura_map<- function(input="inp", output="outp"){
-
+  
   obj1<- mask(input-273.15, pol)
   
   centroidy$column <- sprintf(round(as.vector(raster::extract(obj1, centroidy)),1),fmt = '%#.1f')
-
+  
   breaks <-round(seq(-28, 35, length.out = length(tempcolores)),1)
   
   range_min <- floor(quantile(obj1, p=0.01))
@@ -160,8 +162,8 @@ temperatura_map<- function(input="inp", output="outp"){
     # windhydro credits
     tm_credits("(c) Wind-Hydro 2019", position = c("left", "bottom"), 
                size = 0.35, bg.color = "white")
-    
- }
+  
+}
 
 www_path <- gsub(x = pathway, pattern = "wrfprd","www")
 dir.create(www_path)

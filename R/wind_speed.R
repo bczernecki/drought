@@ -59,30 +59,34 @@ myfunction_for_converting <- function(input = 'netcdf',  variable = "var"){
   ExportGeogrid(inFile = input, inVar = variable, outFile = output)
 }
 
-mclapply(day, function(x) myfunction_for_converting(input = x, variable="RAINNC"), mc.cores = 24)
-mclapply(day2, function(x) myfunction_for_converting(input = x, variable="RAINNC"), mc.cores = 24)
-mclapply(day3, function(x) myfunction_for_converting(input = x, variable="RAINNC"), mc.cores = 24)
+mclapply(day, function(x) myfunction_for_converting(input = x, variable="U10"), mc.cores = 24)
+mclapply(day2, function(x) myfunction_for_converting(input = x, variable="U10"), mc.cores = 24)
+mclapply(day3, function(x) myfunction_for_converting(input = x, variable="U10"), mc.cores = 24)
+
+mclapply(day, function(x) myfunction_for_converting(input = x, variable="V10"), mc.cores = 24)
+mclapply(day2, function(x) myfunction_for_converting(input = x, variable="V10"), mc.cores = 24)
+mclapply(day3, function(x) myfunction_for_converting(input = x, variable="V10"), mc.cores = 24)
+
 # powinnismy miec teraz stworzone geotify
 
 
 ##########################################################################
-# liczymy srednia z poszczegolnych warstw:
-tempfil<-dir(path=pathway, pattern = "RAINNC", full.names = T)
-if(length(tempfil[grep(pattern = patt, x = tempfil)])>24) tempfil <- tempfil[grep(pattern = paste0("d03_",patt), x = tempfil)] # i tylko domena 03
-#tempfil<- stack(tempfil[grepl(pattern=patt, tempfil)])
-meantemp1 <- raster(tempfil[24])
-meantemp2 <- raster(tempfil[48])
-meantemp3 <- raster(tempfil[72])
-meantemp2 <- meantemp2-meantemp1
-meantemp3 <- meantemp3-meantemp2
-# if(args[2] == 2) meantemp<- tempfil@layers[[48]]
-# if(args[2] == 3) meantemp<- tempfil@layers[[72]]
+# liczymy sredni wiatr z poszczegolnych warstw:
+tempfil<-dir(path=pathway, pattern = "U10", full.names = T)
+tempfil <- tempfil[grep(pattern = paste0("d03_"), x = tempfil)] # i tylko domena 03
+tempfil<- stack(tempfil)
+
+tempfil2<-dir(path=pathway, pattern = "U10", full.names = T)
+tempfil2 <- tempfil2[grep(pattern = paste0("d03_"), x = tempfil2)] # i tylko domena 03
+tempfil2<- stack(tempfil2)
+
+ws = sqrt((tempfil*tempfil) + (tempfil2*tempfil2))
 
 
 
-#beginCluster(4)
-#meantemp <- clusterR(tempfil, calc, args=list(mean, na.rm=T))
-#endCluster()
+ws1 <- mean(ws[[1:24]])
+ws2 <- mean(ws[[25:48]])
+ws3 <- mean(ws[[49:72]])
 
 # Creating figure
 #color scale
@@ -107,12 +111,12 @@ tempcolores<- c("white", "#ebf7f9", "#d1ecf9", "#c1e1f5", "#a1cde7", "#87c3e2", 
              "#653d3b", "#633939", "#583634", "#573836", "#583333")
 
 
-skala=c('white','lightblue4','olivedrab3','yellow2','orange','red','magenta')
+skala=c('white','lightblue4','olivedrab3','yellow2','orange','red','magenta', 'brown')
 color.gradient <- function(x, colors=skala, colsteps=k) {
   return( colorRampPalette(colors) (colsteps) [ findInterval(x, seq(min,max2, length.out=colsteps)) ] )
 }
 rbPal <- colorRampPalette(skala)
-tempcolores <- rbPal(87)
+tempcolores <- rbPal(31)
 
 
 
@@ -122,7 +126,7 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
   
   centroidy$column <- sprintf(round(as.vector(raster::extract(obj1, centroidy)),1),fmt = '%#.1f')
   
-  breaks <- c(0, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 2:10/2, seq(6,49, by=1), seq(50,100,2))
+  breaks <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75,  2:10/2, seq(6,12, by=1), seq(14,30, by=2))
   
   range_min <- 0
   range_max <- ceiling(quantile(obj1, p=0.99))
@@ -207,44 +211,44 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
 www_path <- gsub(x = pathway, pattern = "wrfprd","www")
 dir.create(www_path)
 
-p1 <- temperatura_map(input=meantemp1, title = paste0("Suma dobowa opadu [mm] \n", patt , " (00-23 UTC)"))
+p1 <- temperatura_map(input=ws1, title = paste0("Średnia dobowa prędkość wiatru [m/s] \n", patt , " (00-23 UTC)"))
 
 # ciecie w inner margins: dol, lewa, gora, prawa
 tmap_save(p1 + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-          filename = paste0(www_path, "/prec_",patt,".png"), width=1000, height=1300)
-writeRaster(meantemp1, filename = paste0(www_path,"/prec_",patt,".tif"),overwrite=TRUE)
-writeRaster(meantemp1, filename = paste0("/home/wh/opad/opad_",patt,".tif"),overwrite=TRUE)
+          filename = paste0(www_path, "/ws_",patt,".png"), width=1000, height=1300)
+writeRaster(ws1, filename = paste0(www_path,"/ws_",patt,".tif"),overwrite=TRUE)
+writeRaster(ws1, filename = paste0("/home/wh/ws/ws_",patt,".tif"),overwrite=TRUE)
 # 
 
 patt <- as.Date(patt)+1
-p2 <- temperatura_map(input=meantemp2, title = paste0("Suma dobowa opadu [mm] \n", patt , " (00-23 UTC)"))
+p2 <- temperatura_map(input=ws2, title = paste0("Średnia dobowa prędkość wiatru [m/s] \n", patt , " (00-23 UTC)"))
 
 # ciecie w inner margins: dol, lewa, gora, prawa
 tmap_save(p2 + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-          filename = paste0(www_path, "/prec_",patt,".png"), width=1000, height=1300)
-writeRaster(meantemp2, filename = paste0(www_path,"/prec_",patt,".tif"),overwrite=TRUE)
-writeRaster(meantemp2, filename = paste0("/home/wh/opad/opad_",patt,".tif"),overwrite=TRUE)
+          filename = paste0(www_path, "/ws_",patt,".png"), width=1000, height=1300)
+writeRaster(ws2, filename = paste0(www_path,"/ws_",patt,".tif"),overwrite=TRUE)
+writeRaster(ws2, filename = paste0("/home/wh/ws/ws_",patt,".tif"),overwrite=TRUE)
 
 patt <- as.Date(patt)+1
-p3 <- temperatura_map(input=meantemp3, title = paste0("Suma dobowa opadu [mm] \n", patt , " (00-23 UTC)"))
+p3 <- temperatura_map(input=ws3, title = paste0("Średnia dobowa prędkość wiatru [mm] \n", patt , " (00-23 UTC)"))
 # ciecie w inner margins: dol, lewa, gora, prawa
 tmap_save(p3 + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-          filename = paste0(www_path, "/prec_",patt,".png"), width=1000, height=1300)
-writeRaster(meantemp3, filename = paste0(www_path,"/prec_",patt,".tif"),overwrite=TRUE)
-writeRaster(meantemp3, filename = paste0("/home/wh/opad/opad_",patt,".tif"),overwrite=TRUE)
+          filename = paste0(www_path, "/ws_",patt,".png"), width=1000, height=1300)
+writeRaster(ws3, filename = paste0(www_path,"/ws_",patt,".tif"),overwrite=TRUE)
+writeRaster(ws3, filename = paste0("/home/wh/ws/ws_",patt,".tif"),overwrite=TRUE)
 
 
 
 # dorzucenie kodu do plotowania rastrow godzinowych:
-tempfil<- stack(tempfil)
-nazwy <- gsub( x = gsub(x = gsub(x = names(tempfil), pattern = "wrfout_d03_", ""), pattern = "00_RAINNC_", ""), pattern = "_", " ")
-fname <- gsub(x = gsub(nazwy, pattern = " ", replacement = ""), pattern = '.', replacement = "", fixed=T)
-for (i in 1:(length(names(tempfil))-1)){
-  
-  p <- temperatura_map(input=tempfil[[i+1]]-tempfil[[i]], title = paste0("Suma opadu [mm] \n", nazwy[i], "UTC"))
-  
-  tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-            filename = paste0(www_path, "/prec_",fname[i],".png"), width=1000, height=1300)
-  
-}
-
+# tempfil<- ws
+# nazwy <- gsub( x = gsub(x = gsub(x = names(tempfil), pattern = "wrfout_d03_", ""), pattern = "00_RAINNC_", ""), pattern = "_", " ")
+# fname <- gsub(x = gsub(nazwy, pattern = " ", replacement = ""), pattern = '.', replacement = "", fixed=T)
+# for (i in 1:(length(names(tempfil))-1)){
+#   
+#   p <- temperatura_map(input=tempfil[[i+1]]-tempfil[[i]], title = paste0("Suma opadu [mm] \n", nazwy[i], "UTC"))
+#   
+#   tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
+#             filename = paste0(www_path, "/prec_",fname[i],".png"), width=1000, height=1300)
+#   
+# }
+# 

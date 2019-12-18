@@ -37,24 +37,12 @@ load(file = "data/gisy.Rdata")
 # rzeki <- spTransform(rzeki, proj4)
 # centroidy <-  gCentroid(wojewodztwa,byid=TRUE)
 
-
- myfunction_for_converting <- function(input = 'netcdf',  variable = "var"){
-    geofile <- input
-    proj4<- GetProj(geofile)
-    output <- paste0(input, "_", variable, "_.tif")
-    ExportGeogrid(inFile = input, inVar = variable, outFile = output)
- }
- 
-mclapply(day, function(x) myfunction_for_converting(input = x, variable="T2"), mc.cores = 24)
-# powinnismy miec teraz stworzone geotify
-
-
 ##########################################################################
 # liczymy srednia z poszczegolnych warstw:
 tempfil<-dir(path=pathway, pattern = "T2", full.names = T)
 if(length(tempfil[grep(pattern = patt, x = tempfil)])>24) tempfil <- tempfil[grep(pattern = paste0("d03_",patt), x = tempfil)] # i tylko domena 03
 tempfil<- stack(tempfil[grepl(pattern=patt, tempfil)])
-meantemp<- calc(tempfil,mean)
+meantemp<- calc(tempfil,min)-0.5
 
 
 #beginCluster(4)
@@ -82,13 +70,13 @@ tempcolores<- c("#f6c39f","#e3ac89","#cb9881","#b58575","#9c716e","#865c62","#70
 
 
 
-temperatura_map<- function(input="inp", output="outp", title = "tytul"){
+temperatura_map<- function(input="inp", output="outp"){
   
   obj1<- mask(input-273.15, pol)
   
   centroidy$column <- sprintf(round(as.vector(raster::extract(obj1, centroidy)),1),fmt = '%#.1f')
   
-  breaks <-round(seq(-28, 35, length.out = length(tempcolores)),1)
+  breaks <-round(seq(-32, 31, length.out = length(tempcolores)),1)
   
   range_min <- floor(quantile(obj1, p=0.01))
   range_max <- ceiling(max(maxValue(obj1)))
@@ -98,7 +86,7 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
   tempcolores2 <- tempcolores[ind[-length(ind)]]
   
   tm_shape(obj1) +
-    tm_raster(title= title,
+    tm_raster(title= paste0("Minimalna dobowa temperatura powietrza [°C] \n", patt , " (00-23 UTC)"),
               interval.closure = "left",legend.hist = T,
               palette = tempcolores2, breaks=breaks2, 
               legend.is.portrait = FALSE,
@@ -163,34 +151,17 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
     tm_scale_bar(width = 0.12,size = 0.35,breaks = c(0,50,100,150), position = c("left","bottom")) +
     
     # windhydro credits
-    tm_credits("(c) WIND-HYDRO 2019", position = c("left", "bottom"), 
+    tm_credits("(c) Wind-Hydro 2019", position = c("left", "bottom"), 
                size = 0.35, bg.color = "white")
   
 }
 
-
 www_path <- gsub(x = pathway, pattern = "wrfprd","www")
 dir.create(www_path)
 
-p <- temperatura_map(input=meantemp, title = paste0("Średnia dobowa temperatura powietrza [°C] \n", patt , " (00-23 UTC)"))
-
+p <- temperatura_map(input=meantemp)
 # ciecie w inner margins: dol, lewa, gora, prawa
 tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-          filename = paste0(www_path, "/t2m_",patt,".png"), width=1000, height=1300)
+          filename = paste0(www_path, "/t2m_min_",patt,".png"), width=1000, height=1300)
 
-writeRaster(meantemp-273.15, filename = paste0(www_path,"/t2m_",patt,".tif"),overwrite=TRUE)
-writeRaster(meantemp-273.15, filename = paste0("/home/wh/tavg/tavg_",patt,".tif"),overwrite=TRUE)
-
-
-# dorzucenie kodu do plotowania rastrow godzinowych:
-nazwy <- gsub( x = gsub(x = gsub(x = names(tempfil), pattern = "wrfout_d03_", ""), pattern = "00_T2_", ""), pattern = "_", " ")
-fname <- gsub(x = gsub(nazwy, pattern = " ", replacement = ""), pattern = '.', replacement = "", fixed=T)
-for (i in 1:length(names(tempfil))){
-  
-  p <- temperatura_map(input=tempfil[[i]], title = paste0("Temperatura powietrza  [°C] \n", nazwy[i], "UTC"))
-  
-  tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-            filename = paste0(www_path, "/t2m_",fname[i],".png"), width=1000, height=1300)
-  
-}
-
+writeRaster(meantemp-273.15, filename = paste0(www_path,"/t2m_min_",patt,".tif"),overwrite=TRUE)

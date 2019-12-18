@@ -21,13 +21,13 @@ tempfil <- tempfil[grep(pattern = "tif", x = tempfil)] # i tylko domena 03
 r <- raster::stack(tempfil)
 
 
-tmin1 <- min(r[[1:24]])
-tmin2 <- min(r[[25:48]])
-tmin3 <- min(r[[49:72]])
+tmin1 <- min(r[[1:24]])-273.15
+tmin2 <- min(r[[25:48]])-273.15
+tmin3 <- min(r[[49:72]])-273.15
 
-tmax1 <- max(r[[1:24]])
-tmax2 <- max(r[[25:48]])
-tmax3 <- max(r[[49:72]])
+tmax1 <- max(r[[1:24]])-273.15
+tmax2 <- max(r[[25:48]])-273.15
+tmax3 <- max(r[[49:72]])-273.15
 
 
 

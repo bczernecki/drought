@@ -12,7 +12,7 @@ library(parallel)
 args = commandArgs(trailingOnly=TRUE)
 print(args[1])
 print(args[2])
-#args <- c(20190803,1)
+#args <- c(20191218,1)
 start_wrf <- as.Date(paste0(args[1]), format="%Y%m%d")
 dzien <- as.numeric(as.character(args[2])) # tutaj chodzi o dzien wyprzedzenia wzgledem startu prognozy (np. +1, +2)
 patt <- as.character(start_wrf+dzien)
@@ -240,15 +240,16 @@ writeRaster(ws3, filename = paste0("/home/wh/ws/ws_",patt,".tif"),overwrite=TRUE
 
 
 # dorzucenie kodu do plotowania rastrow godzinowych:
-# tempfil<- ws
-# nazwy <- gsub( x = gsub(x = gsub(x = names(tempfil), pattern = "wrfout_d03_", ""), pattern = "00_RAINNC_", ""), pattern = "_", " ")
-# fname <- gsub(x = gsub(nazwy, pattern = " ", replacement = ""), pattern = '.', replacement = "", fixed=T)
-# for (i in 1:(length(names(tempfil))-1)){
-#   
-#   p <- temperatura_map(input=tempfil[[i+1]]-tempfil[[i]], title = paste0("Suma opadu [mm] \n", nazwy[i], "UTC"))
-#   
-#   tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-#             filename = paste0(www_path, "/prec_",fname[i],".png"), width=1000, height=1300)
-#   
-# }
-# 
+tempfil<- ws
+nazwy <- gsub( x = gsub(x = gsub(x = names(tempfil2), pattern = "wrfout_d03_", ""), pattern = "00_U10_", ""), pattern = "_", " ")
+fname <- gsub(x = gsub(nazwy, pattern = " ", replacement = ""), pattern = '.', replacement = "", fixed=T)
+
+for (i in 1:(length(names(tempfil2)))){
+
+  p <- temperatura_map(input=ws[[i]], title = paste0("Prędkość wiatru [m/s] \n", nazwy[i], "UTC"))
+
+  tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)),
+            filename = paste0(www_path, "/ws_",fname[i],".png"), width=1000, height=1300)
+
+}
+

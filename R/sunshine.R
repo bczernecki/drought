@@ -12,7 +12,7 @@ library(parallel)
 args = commandArgs(trailingOnly=TRUE)
 print(args[1])
 print(args[2])
-#args <- c(20191218,1)
+#args <- c(20200101,1)
 start_wrf <- as.Date(paste0(args[1]), format="%Y%m%d")
 dzien <- as.numeric(as.character(args[2])) # tutaj chodzi o dzien wyprzedzenia wzgledem startu prognozy (np. +1, +2)
 patt <- as.character(start_wrf+dzien)
@@ -290,7 +290,7 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
 }
 
 
-
+patt = start_wrf+1
 p <- temperatura_map(input=napromieniowanie1, title = paste0("Suma dobowa napromieniowania [W/m2] \n", patt , " (00-23 UTC)"))
 tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
           filename = paste0(www_path, "/promieniowanie_",patt,".png"), width=1000, height=1300)
@@ -304,7 +304,7 @@ writeRaster(napromieniowanie2, filename = paste0(www_path,"/promieniowanie_",pat
 
 
 patt3 = as.Date(patt)+2
-p3 <- temperatura_map(input=napromieniowanie3, title = paste0("Suma dobowa napromieniowania [W/m2] \n", patt2 , " (00-23 UTC)"))
+p3 <- temperatura_map(input=napromieniowanie3, title = paste0("Suma dobowa napromieniowania [W/m2] \n", patt3 , " (00-23 UTC)"))
 tmap_save(p3 + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
           filename = paste0(www_path, "/promieniowanie_",patt3,".png"), width=1000, height=1300)
 writeRaster(napromieniowanie3, filename = paste0(www_path,"/promieniowanie_",patt3,".tif"),overwrite=TRUE)

@@ -51,13 +51,12 @@ load(file = "data/gisy.Rdata")
 # rzeki <- spTransform(rzeki, proj4)
 # centroidy <-  gCentroid(wojewodztwa,byid=TRUE)
 
-source("~/github/drought/R/Export2Raster.R")
 
 myfunction_for_converting <- function(input = 'netcdf',  variable = "var"){
   geofile <- input
   proj4<- GetProj(geofile)
   output <- paste0(input, "_", variable, "_.tif")
-  Export2Raster(inFile = input, inVar = variable, outFile = output)
+  ExportGeogrid(inFile = input, inVar = variable, outFile = output)
 }
 
 mclapply(day, function(x) myfunction_for_converting(input = x, variable="SWDOWN"), mc.cores = 24)

@@ -88,10 +88,8 @@ napromieniowanie3 <- sum(tempfil[[49:72]])
 
 
 writeRaster(r1, filename = paste0("/home/wh/sunshine/sunshine_",patt,".tif"),overwrite=TRUE)
-patt = as.Date(patt, "%Y-%m-%d")+1
-writeRaster(r2, filename = paste0("/home/wh/sunshine/sunshine_",patt,".tif"),overwrite=TRUE)
-patt = as.Date(patt, "%Y-%m-%d")+1
-writeRaster(r3, filename = paste0("/home/wh/sunshine/sunshine_",patt,".tif"),overwrite=TRUE)
+writeRaster(r2, filename = paste0("/home/wh/sunshine/sunshine_",as.Date(patt, "%Y-%m-%d")+1,".tif"),overwrite=TRUE)
+writeRaster(r3, filename = paste0("/home/wh/sunshine/sunshine_",as.Date(patt, "%Y-%m-%d")+2,".tif"),overwrite=TRUE)
 
 
 
@@ -289,20 +287,23 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
 }
 
 
-patt = start_wrf+1
+cat(paste("dzien pierwszy", patt))
 p <- temperatura_map(input=napromieniowanie1, title = paste0("Suma dobowa napromieniowania [W/m2] \n", patt , " (00-23 UTC)"))
 tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
           filename = paste0(www_path, "/promieniowanie_",patt,".png"), width=1000, height=1300)
 writeRaster(napromieniowanie1, filename = paste0(www_path,"/promieniowanie_",patt,".tif"),overwrite=TRUE)
 
+
 patt2 = as.Date(patt)+1
+cat(paste("dzien drugi", patt2))
 p2 <- temperatura_map(input=napromieniowanie2, title = paste0("Suma dobowa napromieniowania [W/m2] \n", patt2 , " (00-23 UTC)"))
 tmap_save(p2 + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-          filename = paste0(www_path, "/promieniowanie_",patt,".png"), width=1000, height=1300)
+          filename = paste0(www_path, "/promieniowanie_",patt2,".png"), width=1000, height=1300)
 writeRaster(napromieniowanie2, filename = paste0(www_path,"/promieniowanie_",patt2,".tif"),overwrite=TRUE)
 
 
 patt3 = as.Date(patt)+2
+cat(paste("dzien trzeci", patt3))
 p3 <- temperatura_map(input=napromieniowanie3, title = paste0("Suma dobowa napromieniowania [W/m2] \n", patt3 , " (00-23 UTC)"))
 tmap_save(p3 + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
           filename = paste0(www_path, "/promieniowanie_",patt3,".png"), width=1000, height=1300)

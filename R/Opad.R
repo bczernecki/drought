@@ -12,7 +12,7 @@ library(parallel)
 args = commandArgs(trailingOnly=TRUE)
 print(args[1])
 print(args[2])
-#args <- c(20190803,1)
+#args <- c(20200101,1)
 start_wrf <- as.Date(paste0(args[1]), format="%Y%m%d")
 dzien <- as.numeric(as.character(args[2])) # tutaj chodzi o dzien wyprzedzenia wzgledem startu prognozy (np. +1, +2)
 patt <- as.character(start_wrf+dzien)
@@ -127,10 +127,16 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
   range_min <- 0
   range_max <- ceiling(quantile(obj1, p=0.99))
   
-  
   ind <- which(breaks>= range_min & breaks <= range_max)
-  breaks2 <- round(breaks[ind],1)
-  tempcolores2 <- tempcolores[ind[-length(ind)]]
+  
+  # to dla zerowych opadow
+  if(length(ind)==1) {
+    breaks2 = c(0, 0.001) 
+    tempcolores2 = tempcolores[1:2]
+  } else {
+    breaks2 <- round(breaks[ind],1)
+    tempcolores2 <- tempcolores[ind[-length(ind)]]
+    }
   
   
   tm_shape(obj1) +

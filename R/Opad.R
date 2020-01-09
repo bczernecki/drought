@@ -205,7 +205,7 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
     tm_scale_bar(width = 0.12,size = 0.35,breaks = c(0,50,100,150), position = c("left","bottom")) +
     
     # windhydro credits
-    tm_credits("(c) WIND-HYDRO 2019", position = c("left", "bottom"), 
+    tm_credits("(c) WIND-HYDRO 2020", position = c("left", "bottom"), 
                size = 0.35, bg.color = "white")
   
 }

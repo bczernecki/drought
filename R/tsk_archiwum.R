@@ -1,60 +1,97 @@
+# wez wszystkie warstwy z historycznego wrfa i zrob z tego godzinowe geotiffy:
+
 library(raster)
-#library(dplyr)
-#library(lubridate)
 library(rwrfhydro)
 library(rgdal)
 library(tmap)
 library(parallel)
+library(raster)
+
+r_baza = raster("~/tavg/tavg_2019-10-01.tif")
+crs <- crs(r_baza)
 
 ###############################################################
 ################# Parametry do ustawienia #####################
 ###############################################################
-args = commandArgs(trailingOnly=TRUE)
-print(args[1])
-print(args[2])
-#args <- c(20200430,1)
-start_wrf <- as.Date(paste0(args[1]), format="%Y%m%d")
-dzien <- as.numeric(as.character(args[2])) # tutaj chodzi o dzien wyprzedzenia wzgledem startu prognozy (np. +1, +2)
-patt <- as.character(start_wrf+dzien)
-#print()
-#patt<- "2019-05-20"
-pathway <- paste0("/media/wh/dysk12/wrfout/", format(start_wrf, "%Y%m%d") ,"/wrfprd")
-day <- dir(path=pathway , pattern = patt,full.names = T)
-day <- day[grep(pattern = "00$", x = day)] # bez geotiffow
-if(length(day[grep(pattern = "d03", x = day)])>0) day <- day[grep(pattern = "d03", x = day)] # i tylko domena 03
-day <- as.list(day) 
+files = NULL
+for (i in 1998:2018){
+  print(i)
+  setwd(paste0("~/nas/03_WRF_wyniki_wrfout_d03"))
+  files = c(files, dir(path = paste0(i,"/"), pattern="wrfout", full.names = T))
+}
+
+files[length(files)]
+table(nchar(files))
+
+files = paste0("~/nas/03_WRF_wyniki_wrfout_d03/",files)
 
 # warstwy GIS:
-load(file = "data/gisy.Rdata")
-# wojewodztwa <- readOGR("data/POL_adm1.shp")
-# pol <- readOGR("data/POL_adm0.shp")
-# rzeki <- readOGR("data/rzekiPL.shp") 
-# jeziora <- readOGR("data/jeziora.shp")
-# proj4 <- "+proj=lcc +lat_1=49.826000213623 +lat_2=49.826000213623 +lat_0=51.8421516418457 +lon_0=16.2469997406006 +x_0=0 +y_0=0 +a=6370000 +b=6370000 +units=m +no_defs"
-# wojewodztwa <- spTransform(wojewodztwa,proj4)
-# pol <- spTransform(pol, proj4)
-# jeziora <- spTransform(jeziora, proj4)
-# rzeki <- spTransform(rzeki, proj4)
-# centroidy <-  gCentroid(wojewodztwa,byid=TRUE)
+load(file = "~/github/drought/data/gisy.Rdata")
+
+myfunction_for_converting <- function(input = 'netcdf',  variable = "var"){
+  geofile <- input
+  proj4<- GetProj(geofile)
+  output <- paste0(input, "_tsk.tif")
+  #output = gsub(x = output, pattern = '~/nas/03_WRF_wyniki_wrfout_d03/', '/home/wh/tsk/')
+  output = paste0("/home/wh/tsk/2020/",basename(output))
+  output = gsub(x = output, pattern = 'wrfout_d03_', '')
+  output = gsub(x = output, pattern = ":", replacement = "_")
+  ExportGeogrid(inFile = input, inVar = variable, outFile = output)
+  r = raster(output)
+  r = projectRaster(from = r, to = r_baza)
+  writeRaster(r, filename = output, overwrite=T)
+  
+}
+
+for (i in 1998:2018){
+  dir.create(paste0("/home/wh/tsk/", i))
+}
 
 
- myfunction_for_converting <- function(input = 'netcdf',  variable = "var"){
-    geofile <- input
-    proj4<- GetProj(geofile)
-    output <- paste0(input, "_", variable, "_.tif")
-    ExportGeogrid(inFile = input, inVar = variable, outFile = output)
- }
- 
-mclapply(day, function(x) myfunction_for_converting(input = x, variable="T2"), mc.cores = 24)
+mclapply(files, function(x) myfunction_for_converting(input = x, variable="TSK"), mc.cores = 31)
+# jeszcze w bashu:
+# for i in `seq 1998 2020` ; do echo $i ; mv $i/*tif . ; done
 # powinnismy miec teraz stworzone geotify
 
+# jeszcze ogarnac geotiffy dla operacyjnych warstw:
+# ktore sa tutaj: /nas/07_DYSK_KOPISA_4T/wrfout$ 
 
-##########################################################################
-# liczymy srednia z poszczegolnych warstw:
-tempfil<-dir(path=pathway, pattern = "T2", full.names = T)
+# dorzucic wszystkie pliki za 2019 do chwili obecnej
+df = seq.Date(from = as.Date("2018-12-31"), to = as.Date("2019-12-31"), by = "day")
+df2 = rep(paste0("~/nas/07_DYSK_KOPISA_4T/wrfout/",
+                 format(df, "%Y%m%d"), 
+                 "/wrfprd/wrfout_d03_",
+                 format(df+1, "%Y-%m-%d_")), each = 24)
+linki = paste0(df2,      
+               sprintf("%02d", 0:23),
+               ":00:00")
+df = data.frame(path = linki, jestnadysku = file.exists(linki), stringsAsFactors = F)
+df = df[-which(df$jestnadysku==F),]
+df$path
+mclapply(df$path, function(x) myfunction_for_converting(input = x, variable="TSK"), mc.cores = 31)
+
+
+# na koniec od 2020:
+# dorzucic wszystkie pliki za 2019 do chwili obecnej
+df = seq.Date(from = as.Date("2019-12-31"), to = as.Date("2020-05-01"), by = "day")
+df2 = rep(paste0("/media/wh/dysk12/wrfout/",
+                 format(df, "%Y%m%d"), 
+                 "/wrfprd/wrfout_d03_",
+                 format(df+1, "%Y-%m-%d_")), each = 24)
+linki = paste0(df2,      
+               sprintf("%02d", 0:23),
+               ":00:00")
+df = data.frame(path = linki, jestnadysku = file.exists(linki), stringsAsFactors = F)
+df = df[-which(df$jestnadysku==F),]
+df$path
+mclapply(df$path, function(x) myfunction_for_converting(input = x, variable="TSK"), mc.cores = 31)
+
+
+
+tempfil<-dir(path=pathway, pattern = "TSK", full.names = T)
 if(length(tempfil[grep(pattern = patt, x = tempfil)])>24) tempfil <- tempfil[grep(pattern = paste0("d03_",patt), x = tempfil)] # i tylko domena 03
 tempfil<- stack(tempfil[grepl(pattern=patt, tempfil)])
-meantemp<- calc(tempfil,mean)
+mintemp<- calc(tempfil,min)
 
 
 #beginCluster(4)
@@ -163,7 +200,7 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
     tm_scale_bar(width = 0.12,size = 0.35,breaks = c(0,50,100,150), position = c("left","bottom")) +
     
     # windhydro credits
-    tm_credits("(c) WIND-HYDRO 2020", position = c("left", "bottom"), 
+    tm_credits("esusza.pl\n(c) WIND-HYDRO 2020", position = c("left", "bottom"), 
                size = 0.35, bg.color = "white")
   
 }
@@ -172,25 +209,25 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
 www_path <- gsub(x = pathway, pattern = "wrfprd","www")
 dir.create(www_path)
 
-p <- temperatura_map(input=meantemp, title = paste0("Średnia dobowa temperatura powietrza [°C] \n", patt , " (00-23 UTC)"))
+p <- temperatura_map(input=mintemp, title = paste0("Minimalna dobowa temperatura gruntu [°C] \n", patt , " (00-23 UTC)"))
 
 # ciecie w inner margins: dol, lewa, gora, prawa
 tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-          filename = paste0(www_path, "/t2m_",patt,".png"), width=1000, height=1300)
+          filename = paste0(www_path, "/tsk_min_",patt,".png"), width=1000, height=1300)
 
-writeRaster(meantemp-273.15, filename = paste0(www_path,"/t2m_",patt,".tif"),overwrite=TRUE)
-writeRaster(meantemp-273.15, filename = paste0("/home/wh/tavg/tavg_",patt,".tif"),overwrite=TRUE)
+writeRaster(meantemp-273.15, filename = paste0(www_path,"/tsk_min_",patt,".tif"),overwrite=TRUE)
+writeRaster(meantemp-273.15, filename = paste0("/home/wh/tsk/tsk_min_",patt,".tif"),overwrite=TRUE)
 
 
 # dorzucenie kodu do plotowania rastrow godzinowych:
-nazwy <- gsub( x = gsub(x = gsub(x = names(tempfil), pattern = "wrfout_d03_", ""), pattern = "00_T2_", ""), pattern = "_", " ")
+nazwy <- gsub( x = gsub(x = gsub(x = names(tempfil), pattern = "wrfout_d03_", ""), pattern = "00_TSK_", ""), pattern = "_", " ")
 fname <- gsub(x = gsub(nazwy, pattern = " ", replacement = ""), pattern = '.', replacement = "", fixed=T)
 for (i in 1:length(names(tempfil))){
   
-  p <- temperatura_map(input=tempfil[[i]], title = paste0("Temperatura powietrza  [°C] \n", nazwy[i], "UTC"))
+  p <- temperatura_map(input=tempfil[[i]], title = paste0("Temperatura gruntu  [°C] \n", nazwy[i], "UTC"))
   
   tmap_save(p + tm_layout(inner.margins = c(-0.1, -0.06, -0.1, -0.1)), 
-            filename = paste0(www_path, "/t2m_",fname[i],".png"), width=1000, height=1300)
+            filename = paste0(www_path, "/tsk_",fname[i],".png"), width=1000, height=1300)
   
 }
 

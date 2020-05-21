@@ -136,10 +136,14 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
   breaks2 <- round(breaks[ind],1)
   tempcolores2 <- tempcolores[ind[-length(ind)]]
   
+  #palette = kolory, breaks=breaks,
+  
   tm_shape(obj1) +
     tm_raster(title= title,
               interval.closure = "left",legend.hist = T,
-              palette = tempcolores2, breaks=breaks2, 
+              labels = as.character(breaks2[-1]),
+              palette = tempcolores2, 
+              breaks=breaks2, 
               legend.is.portrait = FALSE,
               interpolate = FALSE)  +
     
@@ -186,6 +190,7 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
       legend.bg.alpha = 1,
       space.color="grey90",
       legend.format = list(text.separator = " ", format = formatC("f")))+
+    
     
     #Lon/Lat    
     tm_grid(projection = "longlat", x = 10:30, y=40:60, labels.col = "black", col = "gray",lwd = 0.5,
@@ -249,6 +254,7 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
   tm_shape(obj1) +
     tm_raster(title= title,
               interval.closure = "left",legend.hist = T,
+              labels = as.character(breaks2[-1]),
               palette = tempcolores2, breaks=breaks2, 
               legend.is.portrait = FALSE,
               interpolate = FALSE)  +
@@ -331,7 +337,7 @@ temperatura_map<- function(input="inp", output="outp", title = "tytul"){
 
 SKALA=c('white', "lightblue", 'blue', "darkblue", "violet")
 rbPal <- colorRampPalette(SKALA)
-tempcolores = rbPal(24)
+tempcolores = rbPal(25)
 
   
   temperatura_map = function(input="inp", output="outp", title = "tytul"){
@@ -346,6 +352,7 @@ tempcolores = rbPal(24)
     tm_shape(obj1) +
       tm_raster(title= title,
                 interval.closure = "left",legend.hist = T,
+                labels = as.character(breaks2[-25]),
                 palette = tempcolores2, breaks=breaks2, 
                 legend.is.portrait = FALSE,
                 interpolate = FALSE)  +
